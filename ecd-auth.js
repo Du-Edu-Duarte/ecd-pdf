@@ -21,7 +21,17 @@ const defaultConfig = () => ({
   extras: [{ id: 'matricula', label: 'Matrícula', type: 'text', required: false, options: [] }],
 });
 export const getConfig = () => ({ ...defaultConfig(), ...(LS.get('config', null) || {}) });
-export const getUsers = () => { const u = LS.get('users', null); if (u) return u; const d = [{ id: 'demo', nome: 'Usuário Demonstração', email: DEMO_EMAIL, setor: 'Segurança do Trabalho', extras: { matricula: '0001' }, role: 'admin', createdAt: Date.now(), verifiedAt: Date.now() }]; LS.set('users', d); return d; };
+export const OWNER_EMAIL = 'eduardoduartecostaduarte@gmail.com';
+const OWNER = () => ({ id: 'owner', nome: 'Eduardo Costa Duarte', email: OWNER_EMAIL, setor: 'Administrativo', extras: {}, role: 'admin', owner: true, createdAt: Date.now(), verifiedAt: Date.now() });
+export const getUsers = () => {
+  let u = LS.get('users', null);
+  if (!u) u = [{ id: 'demo', nome: 'Usuário Demonstração', email: DEMO_EMAIL, setor: 'Segurança do Trabalho', extras: { matricula: '0001' }, role: 'admin', createdAt: Date.now(), verifiedAt: Date.now() }];
+  let o = u.find(x => x.email === OWNER_EMAIL);
+  if (!o) { u.unshift(OWNER()); LS.set('users', u); }
+  else if (!o.owner || o.role !== 'admin' || o.blocked) { o.owner = true; o.role = 'admin'; o.blocked = false; LS.set('users', u); }
+  else if (!LS.get('users', null)) LS.set('users', u);
+  return u;
+};
 const getInvites = () => LS.get('invites', []);
 export const me = () => { const s = LS.get('session', null); if (!s || Date.now() - s.at > 7 * 864e5) return null; return getUsers().find(u => u.id === s.userId) || null; };
 const normEmail = e => String(e || '').trim().toLowerCase();
@@ -57,7 +67,7 @@ export function paintUser() {
   if (!u) return;
   const box = document.createElement('div'); box.id = 'userBox'; box.className = 'userbox';
   box.innerHTML = `<button class="uchip" id="uBtn"><span class="av" style="background:#c8952e;border-color:#2a2213">${initials(u.nome)}</span><span class="un">${esc(u.nome.split(' ')[0])}</span></button>
-    <div class="umenu" hidden><div class="uhead"><b>${esc(u.nome)}</b><span>${esc(u.email)}</span><span>${esc(u.setor)}${u.role === 'admin' ? ' · Administrador' : ''}</span></div>${u.role === 'admin' ? '<a href="#/config">⚙️ Empresa, cadastro e convites</a>' : ''}${(APP.links || []).map(l => `<a href="${l.href}">${l.text}</a>`).join('')}<button id="logout">Sair</button></div>`;
+    <div class="umenu" hidden><div class="uhead"><b>${esc(u.nome)}</b><span>${esc(u.email)}</span><span>${esc(u.setor)}${u.owner ? ' · Dono (acesso total)' : u.role === 'admin' ? ' · Administrador' : ''}</span></div>${u.role === 'admin' ? '<a href="#/config">⚙️ Empresa, cadastro e convites</a>' : ''}${(APP.links || []).map(l => `<a href="${l.href}">${l.text}</a>`).join('')}<button id="logout">Sair</button></div>`;
   nav.appendChild(box);
   const m = $('.umenu', box); $('#uBtn').onclick = e => { e.stopPropagation(); m.hidden = !m.hidden; if (!m.hidden) document.addEventListener('click', () => m.hidden = true, { once: true }); };
   $('#logout').onclick = () => { LS.del('session'); paintUser(); location.hash = '#/entrar'; };
@@ -190,7 +200,7 @@ export function Config() {
           <form id="ff" class="row"><input class="search" name="l" placeholder="Novo campo (ex.: Unidade)"><button class="btn sm">+ Adicionar campo</button>${['CPF', 'Telefone', 'Cargo', 'Unidade / obra', 'Data de admissão'].filter(n => !cfg.extras.some(f => f.label === n)).map(n => `<button type="button" class="chipbtn" data-q="${n}">+ ${n}</button>`).join('')}</form></div>
         <div class="card" style="overflow:hidden"><div class="pad" style="padding-bottom:6px"><h2>Pessoas com acesso (${users.length})</h2></div>
           <table class="list"><thead><tr><th>Nome</th><th>Setor</th><th class="hide-m">E-mail</th><th>Perfil</th></tr></thead><tbody>
-          ${users.map(x => `<tr style="cursor:default"><td class="doc-t">${esc(x.nome)}<small>${cfg.extras.map(f => x.extras?.[f.id] ? `${esc(f.label)}: ${esc(x.extras[f.id])}` : '').filter(Boolean).join(' · ') || 'Desde ' + fmtD(x.createdAt)}${x.convite ? ' · convite ' + x.convite : ''}</small></td><td>${esc(x.setor)}</td><td class="hide-m sm">${esc(x.email)}</td><td><select data-role="${x.id}" ${x.id === u.id ? 'disabled' : ''} style="border:1px solid var(--line);border-radius:8px;padding:5px"><option value="user" ${x.role !== 'admin' && !x.blocked ? 'selected' : ''}>Usuário</option><option value="admin" ${x.role === 'admin' && !x.blocked ? 'selected' : ''}>Administrador</option><option value="blocked" ${x.blocked ? 'selected' : ''}>Bloqueado</option></select></td></tr>`).join('')}
+          ${users.map(x => `<tr style="cursor:default"><td class="doc-t">${esc(x.nome)}<small>${cfg.extras.map(f => x.extras?.[f.id] ? `${esc(f.label)}: ${esc(x.extras[f.id])}` : '').filter(Boolean).join(' · ') || 'Desde ' + fmtD(x.createdAt)}${x.convite ? ' · convite ' + x.convite : ''}</small></td><td>${esc(x.setor)}</td><td class="hide-m sm">${esc(x.email)}</td><td>${x.owner ? '<span class="badge b-ok">Dono · acesso total</span>' : ''}<select data-role="${x.id}" ${x.id === u.id || x.owner ? 'disabled hidden' : ''} style="border:1px solid var(--line);border-radius:8px;padding:5px"><option value="user" ${x.role !== 'admin' && !x.blocked ? 'selected' : ''}>Usuário</option><option value="admin" ${x.role === 'admin' && !x.blocked ? 'selected' : ''}>Administrador</option><option value="blocked" ${x.blocked ? 'selected' : ''}>Bloqueado</option></select></td></tr>`).join('')}
           </tbody></table></div>
       </div>
       <aside class="grid" style="position:sticky;top:84px"><div class="card pad"><div class="eyebrow">Prévia</div><h3 style="margin-bottom:12px">Tela de cadastro</h3>
