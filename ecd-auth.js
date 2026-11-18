@@ -58,6 +58,12 @@ function newCode(email, purpose, data) {
 function login(u) { LS.set('session', { userId: u.id, at: Date.now() }); LS.del('pending'); paintUser(); }
 
 let APP = { name: 'ECD', tagline: '', bullets: [], home: '#/' };
+// Tema preto e branco (vale para todos os sistemas ECD neste navegador)
+export const isPB = () => LS.get('theme', 'cor') === 'pb';
+export function applyTheme() { document.documentElement.dataset.theme = isPB() ? 'pb' : 'cor'; document.dispatchEvent(new Event('ecd-theme')); }
+export function toggleTheme() { LS.set('theme', isPB() ? 'cor' : 'pb'); applyTheme(); paintUser(); }
+applyTheme();
+window.__ecdTheme = () => { toggleTheme(); location.reload(); };
 export function configureAuth(opts) { APP = { ...APP, ...opts }; }
 
 export function paintUser() {
@@ -67,12 +73,13 @@ export function paintUser() {
   if (!u) return;
   const box = document.createElement('div'); box.id = 'userBox'; box.className = 'userbox';
   box.innerHTML = `<button class="uchip" id="uBtn"><span class="av" style="background:#c8952e;border-color:#2a2213">${initials(u.nome)}</span><span class="un">${esc(u.nome.split(' ')[0])}</span></button>
-    <div class="umenu" hidden><div class="uhead"><b>${esc(u.nome)}</b><span>${esc(u.email)}</span><span>${esc(u.setor)}${u.owner ? ' · Dono (acesso total)' : u.role === 'admin' ? ' · Administrador' : ''}</span></div>${u.role === 'admin' ? '<a href="#/config">⚙️ Empresa, cadastro e convites</a>' : ''}${(APP.links || []).map(l => `<a href="${l.href}">${l.text}</a>`).join('')}<button id="logout">Sair</button></div>`;
+    <div class="umenu" hidden><div class="uhead"><b>${esc(u.nome)}</b><span>${esc(u.email)}</span><span>${esc(u.setor)}${u.owner ? ' · Dono (acesso total)' : u.role === 'admin' ? ' · Administrador' : ''}</span></div>${u.role === 'admin' ? '<a href="#/config">⚙️ Empresa, cadastro e convites</a>' : ''}${(APP.links || []).map(l => `<a href="${l.href}">${l.text}</a>`).join('')}<button id="themeBtn">◐ Preto e branco: ${isPB() ? 'ligado' : 'desligado'}</button><button id="logout">Sair</button></div>`;
   nav.appendChild(box);
   const m = $('.umenu', box); $('#uBtn').onclick = e => { e.stopPropagation(); m.hidden = !m.hidden; if (!m.hidden) document.addEventListener('click', () => m.hidden = true, { once: true }); };
   $('#logout').onclick = () => { LS.del('session'); paintUser(); location.hash = '#/entrar'; };
+  $('#themeBtn').onclick = e => { e.stopPropagation(); toggleTheme(); toast(isPB() ? 'Preto e branco ligado' : 'Cores ligadas'); };
 }
-const shell = inner => `<div class="auth"><div class="auth-side"><img src="logo.jpg" alt=""><h2>${esc(APP.tagline)}</h2><ul>${APP.bullets.map(b => `<li>${esc(b)}</li>`).join('')}<li>Acesso só para clientes convidados</li></ul><small>${esc(getConfig().empresa)} · ${esc(APP.name)}</small></div><div class="auth-main card">${inner}</div></div>`;
+const shell = inner => `<div class="auth"><div class="auth-side"><img src="logo.jpg" alt=""><h2>${esc(APP.tagline)}</h2><ul>${APP.bullets.map(b => `<li>${esc(b)}</li>`).join('')}<li>Acesso só para clientes convidados</li></ul><small>${esc(getConfig().empresa)} · ${esc(APP.name)} · <button class="link" style="color:inherit" onclick="window.__ecdTheme()">◐ ${isPB() ? 'Cores' : 'Preto e branco'}</button></small></div><div class="auth-main card">${inner}</div></div>`;
 const view = () => $('#view');
 
 export function Entrar(msg = '') {

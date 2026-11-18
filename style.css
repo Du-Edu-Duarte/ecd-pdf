@@ -216,3 +216,10 @@ label.f input:focus,label.f select:focus,label.f textarea:focus,.search:focus{ou
 .tagx{display:inline-flex;align-items:center;gap:8px;background:var(--goldbg);border:1px solid #efdfb8;border-radius:99px;padding:6px 8px 6px 14px;font-size:13.5px;font-weight:600}
 .tagx button{border:0;background:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;color:var(--mut)}
 @media (max-width:900px){.auth{grid-template-columns:1fr}.auth-side{padding:20px 22px;flex-direction:row;align-items:center;gap:14px}.auth-side img{width:44px;height:44px}.auth-side h2{font-size:18px}.auth-side ul,.auth-side small{display:none}.auth-main{padding:26px 20px}.uchip .un{display:none}}
+
+/* tema preto e branco */
+html[data-theme=pb]{filter:grayscale(1)}
+html[data-theme=pb] .btn.primary,html[data-theme=pb] .tag,html[data-theme=pb] .tool.on,html[data-theme=pb] .pal.on{background:#111!important;border-color:#111!important;color:#fff!important}
+html[data-theme=pb] .kpi b{color:#111!important}
+html[data-theme=pb] .demo-bar{background:#f1f1f1;color:#333;border-color:#ddd}
+html[data-theme=pb] .badge{border:1px solid currentColor}
